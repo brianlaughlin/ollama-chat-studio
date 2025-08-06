@@ -42,8 +42,20 @@ Built with ❤️ by Brian Laughlin, this Streamlit-powered application transfor
    ```
 
 3. **Run the application**
+   
+   **🐧 Linux/macOS:**
    ```bash
    streamlit run ollama-chat-app.py
+   ```
+   
+   **🪟 Windows:**
+   ```bash
+   streamlit run ollama-chat-app.py
+   ```
+   
+   Or use the convenient batch file:
+   ```cmd
+   run_streamlit.bat
    ```
 
 4. **Open your browser** and navigate to `http://localhost:8501`
