@@ -65,3 +65,6 @@ Thumbs.db
 
 # Agents directory - development tools not for production
 agents/
+
+# Claude Code files - development tools and temporary files
+.claude/
