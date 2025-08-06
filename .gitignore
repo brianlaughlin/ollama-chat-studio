@@ -62,3 +62,6 @@ Thumbs.db
 # Temporary files
 *.tmp
 *.temp
+
+# Agents directory - development tools not for production
+agents/
