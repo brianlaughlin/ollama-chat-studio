@@ -59,11 +59,370 @@ def apply_custom_css():
     
     colors = theme_colors[st.session_state.theme]
     
+    # Light mode specific overrides
+    light_mode_css = ""
+    if st.session_state.theme == 'light':
+        light_mode_css = f"""
+        /* Core Streamlit component overrides for light mode */
+        .stApp > header {{
+            background-color: transparent !important;
+        }}
+        
+        .stApp .main .block-container {{
+            background-color: {colors['bg']} !important;
+            color: {colors['text']} !important;
+        }}
+        
+        /* Sidebar styling */
+        .stSidebar .stSidebar-content {{
+            background-color: {colors['card']} !important;
+            border-right: 1px solid {colors['border']} !important;
+        }}
+        
+        .stSidebar .stSidebar-content * {{
+            color: {colors['text']} !important;
+        }}
+        
+        /* Text elements */
+        .stApp h1, .stApp h2, .stApp h3, .stApp h4, .stApp h5, .stApp h6 {{
+            color: {colors['text']} !important;
+        }}
+        
+        .stApp p, .stApp div, .stApp span, .stApp li {{
+            color: {colors['text']} !important;
+        }}
+        
+        .stApp .stMarkdown {{
+            color: {colors['text']} !important;
+        }}
+        
+        /* Input elements */
+        .stTextInput input, .stTextArea textarea, .stNumberInput input {{
+            background-color: {colors['bg']} !important;
+            color: {colors['text']} !important;
+            border: 1px solid {colors['border']} !important;
+        }}
+        
+        .stTextInput input:focus, .stTextArea textarea:focus, .stNumberInput input:focus {{
+            border-color: {colors['accent']} !important;
+            box-shadow: 0 0 0 1px {colors['accent']} !important;
+        }}
+        
+        /* Chat input */
+        .stChatInput input {{
+            background-color: {colors['bg']} !important;
+            color: {colors['text']} !important;
+            border: 1px solid {colors['border']} !important;
+        }}
+        
+        .stChatInput input:focus {{
+            border-color: {colors['accent']} !important;
+            box-shadow: 0 0 0 1px {colors['accent']} !important;
+        }}
+        
+        /* Buttons */
+        .stButton button {{
+            background-color: {colors['card']} !important;
+            color: {colors['text']} !important;
+            border: 1px solid {colors['border']} !important;
+        }}
+        
+        .stButton button:hover {{
+            background-color: {colors['thinking']} !important;
+            border-color: {colors['accent']} !important;
+        }}
+        
+        .stButton button:active, .stButton button:focus {{
+            background-color: {colors['accent']} !important;
+            color: white !important;
+            border-color: {colors['accent']} !important;
+        }}
+        
+        /* Select boxes and dropdowns */
+        .stSelectbox select, .stMultiSelect select {{
+            background-color: {colors['bg']} !important;
+            color: {colors['text']} !important;
+            border: 1px solid {colors['border']} !important;
+        }}
+        
+        .stSelectbox select:focus, .stMultiSelect select:focus {{
+            border-color: {colors['accent']} !important;
+            box-shadow: 0 0 0 1px {colors['accent']} !important;
+        }}
+        
+        /* Multiselect */
+        .stMultiSelect .multiselect-container {{
+            background-color: {colors['bg']} !important;
+            border: 1px solid {colors['border']} !important;
+        }}
+        
+        .stMultiSelect .multiselect-container .multiselect-tag {{
+            background-color: {colors['thinking']} !important;
+            color: {colors['text']} !important;
+        }}
+        
+        /* Sliders */
+        .stSlider .slider-container {{
+            color: {colors['text']} !important;
+        }}
+        
+        .stSlider .slider-track {{
+            background-color: {colors['border']} !important;
+        }}
+        
+        .stSlider .slider-thumb {{
+            background-color: {colors['accent']} !important;
+        }}
+        
+        /* Checkboxes */
+        .stCheckbox label {{
+            color: {colors['text']} !important;
+        }}
+        
+        .stCheckbox input:checked + span {{
+            background-color: {colors['accent']} !important;
+        }}
+        
+        /* Expanders */
+        .stExpander {{
+            border: 1px solid {colors['border']} !important;
+            background-color: {colors['card']} !important;
+        }}
+        
+        .stExpander .streamlit-expanderHeader {{
+            background-color: {colors['card']} !important;
+            color: {colors['text']} !important;
+        }}
+        
+        .stExpander .streamlit-expanderContent {{
+            background-color: {colors['bg']} !important;
+            color: {colors['text']} !important;
+        }}
+        
+        /* Columns */
+        .stColumns .stColumn {{
+            background-color: transparent !important;
+        }}
+        
+        /* Chat messages */
+        .stChatMessage {{
+            background-color: {colors['card']} !important;
+            border: 1px solid {colors['border']} !important;
+        }}
+        
+        .stChatMessage .stChatMessage-content {{
+            color: {colors['text']} !important;
+        }}
+        
+        .stChatMessage .stChatMessage-avatar {{
+            background-color: {colors['thinking']} !important;
+        }}
+        
+        /* Captions and labels */
+        .stApp .stCaption {{
+            color: {colors['text']} !important;
+            opacity: 0.7 !important;
+        }}
+        
+        /* Download button */
+        .stDownloadButton button {{
+            background-color: {colors['accent']} !important;
+            color: white !important;
+            border: none !important;
+        }}
+        
+        .stDownloadButton button:hover {{
+            background-color: #45a049 !important;
+        }}
+        
+        /* Code blocks */
+        .stApp pre, .stApp code {{
+            background-color: {colors['thinking']} !important;
+            color: {colors['text']} !important;
+            border: 1px solid {colors['border']} !important;
+        }}
+        
+        /* Tables */
+        .stDataFrame, .stTable {{
+            background-color: {colors['bg']} !important;
+            color: {colors['text']} !important;
+        }}
+        
+        /* Metric widgets */
+        .stMetric {{
+            background-color: {colors['card']} !important;
+            border: 1px solid {colors['border']} !important;
+        }}
+        
+        .stMetric .metric-label {{
+            color: {colors['text']} !important;
+        }}
+        
+        .stMetric .metric-value {{
+            color: {colors['text']} !important;
+        }}
+        
+        /* Progress bars */
+        .stProgress .progress-bar {{
+            background-color: {colors['accent']} !important;
+        }}
+        
+        /* Alerts */
+        .stAlert {{
+            background-color: {colors['card']} !important;
+            color: {colors['text']} !important;
+            border: 1px solid {colors['border']} !important;
+        }}
+        
+        /* Success/Error/Warning messages */
+        .stSuccess, .stError, .stWarning, .stInfo {{
+            color: {colors['text']} !important;
+        }}
+        
+        /* Sidebar specific styling improvements */
+        .stSidebar .stTitle {{
+            color: {colors['text']} !important;
+            font-weight: 600 !important;
+            text-shadow: none !important;
+        }}
+        
+        .stSidebar .stSubheader {{
+            color: {colors['text']} !important;
+            font-weight: 500 !important;
+            margin-top: 1.5rem !important;
+            margin-bottom: 0.5rem !important;
+            text-shadow: none !important;
+        }}
+        
+        /* Enhanced sidebar typography */
+        .stSidebar h1, .stSidebar h2, .stSidebar h3 {{
+            color: {colors['text']} !important;
+            font-weight: 600 !important;
+            text-shadow: none !important;
+        }}
+        
+        .stSidebar h1 {{
+            font-size: 1.5rem !important;
+            border-bottom: 2px solid {colors['accent']} !important;
+            padding-bottom: 0.5rem !important;
+            margin-bottom: 1rem !important;
+        }}
+        
+        .stSidebar h2 {{
+            font-size: 1.2rem !important;
+            color: #2c3e50 !important;
+            margin-top: 1.5rem !important;
+        }}
+        
+        /* Label improvements */
+        .stSidebar label {{
+            color: {colors['text']} !important;
+            font-weight: 500 !important;
+        }}
+        
+        /* Enhanced sidebar background with subtle gradient */
+        .stSidebar .stSidebar-content {{
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%) !important;
+            border-right: 2px solid {colors['border']} !important;
+        }}
+        
+        /* Improved section dividers */
+        .stSidebar hr {{
+            border: none !important;
+            height: 1px !important;
+            background: linear-gradient(90deg, transparent, {colors['border']}, transparent) !important;
+            margin: 1.5rem 0 !important;
+        }}
+        
+        /* Enhanced widget containers */
+        .stSidebar > div > div > div {{
+            background-color: rgba(255, 255, 255, 0.7) !important;
+            border-radius: 8px !important;
+            padding: 0.5rem !important;
+            margin-bottom: 1rem !important;
+            border: 1px solid rgba(0, 0, 0, 0.1) !important;
+        }}
+        
+        /* Checkbox styling improvements */
+        .stSidebar .stCheckbox > label > div:first-child {{
+            background-color: {colors['bg']} !important;
+            border: 2px solid {colors['border']} !important;
+        }}
+        
+        .stSidebar .stCheckbox > label > div:first-child[aria-checked="true"] {{
+            background-color: {colors['accent']} !important;
+            border-color: {colors['accent']} !important;
+        }}
+        
+        /* Enhanced number input styling */
+        .stSidebar .stNumberInput > label {{
+            color: {colors['text']} !important;
+            font-weight: 500 !important;
+        }}
+        
+        /* Text area label styling */
+        .stSidebar .stTextArea > label {{
+            color: {colors['text']} !important;
+            font-weight: 500 !important;
+        }}
+        
+        /* Expander header improvements in sidebar */
+        .stSidebar .streamlit-expanderHeader {{
+            background-color: rgba(255, 255, 255, 0.9) !important;
+            color: {colors['text']} !important;
+            font-weight: 500 !important;
+            border: 1px solid {colors['border']} !important;
+            border-radius: 6px !important;
+        }}
+        
+        .stSidebar .streamlit-expanderHeader:hover {{
+            background-color: {colors['accent']} !important;
+            color: white !important;
+            transform: translateY(-1px) !important;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+        }}
+        
+        /* Download button enhancements */
+        .stSidebar .stDownloadButton button {{
+            background: linear-gradient(135deg, {colors['accent']}, #45a049) !important;
+            color: white !important;
+            border: none !important;
+            border-radius: 6px !important;
+            padding: 0.5rem 1rem !important;
+            font-weight: 500 !important;
+            transition: all 0.3s ease !important;
+        }}
+        
+        .stSidebar .stDownloadButton button:hover {{
+            transform: translateY(-2px) !important;
+            box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3) !important;
+        }}
+        
+        /* Main content title styling */
+        .main h1 {{
+            color: {colors['text']} !important;
+            font-weight: 600 !important;
+            border-bottom: 2px solid {colors['accent']} !important;
+            padding-bottom: 0.5rem !important;
+            margin-bottom: 1.5rem !important;
+        }}
+        
+        /* Enhanced visual hierarchy for captions */
+        .stApp .stCaption {{
+            color: #6c757d !important;
+            font-size: 0.875rem !important;
+            font-weight: 400 !important;
+        }}
+        """
+    
     st.markdown(f"""
     <style>
         .stApp {{
             background-color: {colors['bg']};
+            color: {colors['text']};
         }}
+        
+        {light_mode_css}
         
         .chat-message {{
             padding: 1.5rem;
@@ -95,6 +454,7 @@ def apply_custom_css():
             font-family: 'Courier New', monospace;
             font-size: 0.9em;
             opacity: 0.9;
+            color: {colors['text']};
         }}
         
         .model-header {{
@@ -113,6 +473,7 @@ def apply_custom_css():
             border-radius: 0.4rem;
             font-size: 0.85em;
             margin-left: 0.5rem;
+            color: {colors['text']};
         }}
         
         .comparison-column {{
@@ -126,11 +487,68 @@ def apply_custom_css():
             border-radius: 0.3rem;
             background-color: {colors['thinking']};
             transition: all 0.2s;
+            color: {colors['text']};
         }}
         
         .copy-button:hover {{
             background-color: {colors['accent']};
+            color: white;
             transform: scale(1.05);
+        }}
+        
+        /* Enhanced visual polish for light mode */
+        .thinking-section {{
+            background: linear-gradient(135deg, {colors['thinking']}, #f8f9ff) !important;
+            border-left: 3px solid {colors['accent']} !important;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05) !important;
+            color: {colors['text']} !important;
+        }}
+        
+        .token-stats {{
+            background: linear-gradient(135deg, {colors['thinking']}, #f0f0f8) !important;
+            color: {colors['text']} !important;
+            border: 1px solid rgba(76, 175, 80, 0.2) !important;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+        }}
+        
+        .model-header {{
+            color: {colors['accent']} !important;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1) !important;
+        }}
+        
+        /* Enhanced main content styling */
+        .main .block-container {{
+            padding-top: 2rem !important;
+            padding-bottom: 2rem !important;
+            background-color: {colors['bg']} !important;
+        }}
+        
+        /* Light mode chat message enhancements */
+        .stChatMessage {{
+            background: linear-gradient(135deg, {colors['card']}, #f8f9fa) !important;
+            border: 1px solid {colors['border']} !important;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05) !important;
+            transition: all 0.2s ease !important;
+        }}
+        
+        .stChatMessage:hover {{
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+            transform: translateY(-1px) !important;
+        }}
+        
+        /* Enhanced button styling for light mode */
+        .stButton button {{
+            background: linear-gradient(135deg, {colors['card']}, #f0f0f0) !important;
+            border: 1px solid {colors['border']} !important;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+            transition: all 0.2s ease !important;
+        }}
+        
+        .stButton button:hover {{
+            background: linear-gradient(135deg, {colors['accent']}, #45a049) !important;
+            color: white !important;
+            transform: translateY(-1px) !important;
+            box-shadow: 0 4px 12px rgba(76, 175, 80, 0.25) !important;
         }}
     </style>
     """, unsafe_allow_html=True)
