@@ -560,10 +560,58 @@ def get_available_models():
         response = requests.get('http://localhost:11434/api/tags')
         if response.status_code == 200:
             models = response.json().get('models', [])
-            return [model['name'] for model in models]
+            return sorted([model['name'] for model in models])
         return []
     except:
         return []
+
+def pull_model(model_name, progress_bar):
+    """Pull a model from Ollama"""
+    try:
+        url = 'http://localhost:11434/api/pull'
+        payload = {"name": model_name, "stream": True}
+        response = requests.post(url, json=payload, stream=True)
+        
+        if response.status_code != 200:
+            st.error(f"Error pulling model: {response.text}")
+            return
+
+        total = 0
+        completed = 0
+        for line in response.iter_lines():
+            if line:
+                data = json.loads(line)
+                if "total" in data and "completed" in data:
+                    if total == 0:
+                        total = data['total']
+                    completed = data['completed']
+                    progress = min(1.0, completed / total if total > 0 else 0)
+                    progress_bar.progress(progress, text=f"Downloading {model_name}... {int(progress * 100)}%")
+        
+        progress_bar.progress(1.0, text=f"{model_name} downloaded successfully!")
+        time.sleep(2)
+        st.rerun()
+
+    except Exception as e:
+        st.error(f"Failed to pull model: {e}")
+
+def delete_model(model_name):
+    """Delete a model from Ollama"""
+    try:
+        url = 'http://localhost:11434/api/delete'
+        payload = {"name": model_name}
+        response = requests.delete(url, json=payload)
+        
+        if response.status_code == 200:
+            st.success(f"Model '{model_name}' deleted successfully.")
+            time.sleep(2)
+            st.rerun()
+        else:
+            st.error(f"Failed to delete model: {response.text}")
+
+    except Exception as e:
+        st.error(f"An error occurred: {e}")
+
 
 def extract_thinking_tokens(text):
     """Extract thinking tokens from response (for models like deepseek-r1)"""
@@ -732,14 +780,38 @@ with st.sidebar:
     # Export options
     with st.expander("💾 Export Conversation", expanded=False):
         export_format = st.selectbox("Format:", ['json', 'markdown', 'txt'])
-        if st.button("Export"):
-            content, filename, mime = export_conversation(export_format)
-            st.download_button(
-                label="Download",
-                data=content,
-                file_name=filename,
-                mime=mime
-            )
+        content, filename, mime = export_conversation(export_format)
+        st.download_button(
+            label="Download",
+            data=content,
+            file_name=filename,
+            mime=mime
+        )
+
+    # Model Management
+    with st.expander("🛠️ Manage Models", expanded=True):
+        st.subheader("Pull a New Model")
+        st.link_button("Find models to download", "https://ollama.com/library")
+        new_model_name = st.text_input("Model Name (e.g., llama3:latest)", placeholder="Enter model name")
+        
+        if st.button("Pull Model"):
+            if new_model_name:
+                progress_bar = st.progress(0, text="Starting download...")
+                pull_model(new_model_name, progress_bar)
+            else:
+                st.warning("Please enter a model name.")
+
+        st.subheader("Installed Models")
+        if available_models:
+            for model_name in available_models:
+                col1, col2 = st.columns([0.85, 0.15])
+                with col1:
+                    st.text(model_name)
+                with col2:
+                    if st.button("🗑️", key=f"delete_{model_name}", help=f"Delete {model_name}"):
+                        delete_model(model_name)
+        else:
+            st.info("No models currently installed.")
 
 # Main chat area
 st.title("Chat Interface")
