@@ -7,6 +7,8 @@ import re
 from typing import List, Dict, Any, Optional
 import base64
 import io
+import os
+import pickle
 
 # Page config
 st.set_page_config(
@@ -16,25 +18,181 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# Conversation Templates
+CONVERSATION_TEMPLATES = {
+    "🤝 General Assistant": {
+        "system_prompt": "You are a helpful, knowledgeable, and friendly assistant. Provide clear, accurate, and detailed responses to help users with their questions and tasks.",
+        "starter_message": "Hello! I'm here to help you with any questions or tasks you have. What would you like to know or discuss today?",
+        "description": "A versatile assistant for general questions and tasks"
+    },
+    "👨‍💻 Code Review Assistant": {
+        "system_prompt": "You are an expert code reviewer with years of experience across multiple programming languages. Provide constructive feedback on code quality, suggest improvements, identify potential bugs, and recommend best practices. Be thorough but encouraging.",
+        "starter_message": "I'm ready to help you review your code! Please share the code you'd like me to examine, and I'll provide detailed feedback on:\n- Code quality and structure\n- Potential bugs or issues\n- Performance optimizations\n- Best practices\n\nWhat code would you like me to review?",
+        "description": "Expert code reviewer for all programming languages"
+    },
+    "✍️ Creative Writing Partner": {
+        "system_prompt": "You are a creative writing assistant and storytelling expert. Help users brainstorm ideas, develop characters, create plots, improve their writing style, and overcome writer's block. Be imaginative, supportive, and provide specific, actionable feedback.",
+        "starter_message": "Welcome to your creative writing session! I'm here to help spark your imagination and craft amazing stories. Whether you need help with:\n- Story ideas and plot development\n- Character creation\n- Writing style improvements\n- Overcoming writer's block\n\nWhat writing project are you working on today?",
+        "description": "Collaborative partner for creative writing and storytelling"
+    },
+    "🎯 Technical Interview Practice": {
+        "system_prompt": "You are a senior software engineer conducting a technical interview. Ask challenging but fair questions about programming concepts, algorithms, system design, and problem-solving. Provide hints when needed and give constructive feedback on answers.",
+        "starter_message": "Welcome to your technical interview practice session! I'll help you prepare for coding interviews by asking questions about:\n- Algorithms and data structures\n- System design\n- Programming concepts\n- Problem-solving techniques\n\nLet's start with a warm-up question. Are you ready?",
+        "description": "Practice technical interviews with challenging questions"
+    },
+    "🧠 Learning Tutor": {
+        "system_prompt": "You are an experienced tutor who excels at explaining complex topics in simple terms. Use analogies, examples, and step-by-step explanations. Check for understanding and adjust your teaching style based on the student's responses.",
+        "starter_message": "Hi there! I'm your personal tutor, ready to help you learn and understand any topic. I'll explain things clearly, use helpful examples, and make sure you truly grasp the concepts.\n\nWhat subject or topic would you like to explore today?",
+        "description": "Patient tutor for learning any subject with clear explanations"
+    },
+    "🔬 Research Assistant": {
+        "system_prompt": "You are a thorough research assistant with expertise in finding, analyzing, and summarizing information. Help users explore topics in depth, provide multiple perspectives, cite key concepts, and suggest further research directions.",
+        "starter_message": "I'm your research assistant! I can help you:\n- Explore topics in depth\n- Analyze information from multiple angles\n- Summarize complex concepts\n- Suggest research directions\n- Organize findings\n\nWhat topic would you like to research today?",
+        "description": "Thorough research assistant for in-depth topic exploration"
+    },
+    "💼 Business Strategy Advisor": {
+        "system_prompt": "You are a business strategy consultant with extensive experience across industries. Provide strategic insights, analyze market conditions, suggest growth opportunities, and help with business planning. Be analytical but practical in your recommendations.",
+        "starter_message": "Welcome to your strategy consultation! I'm here to help you think through business challenges and opportunities. I can assist with:\n- Market analysis\n- Strategic planning\n- Growth strategies\n- Problem-solving\n- Business model optimization\n\nWhat business challenge are you facing?",
+        "description": "Strategic business advisor for planning and growth"
+    },
+    "🎨 Creative Brainstorming": {
+        "system_prompt": "You are a creative ideation expert who excels at generating innovative ideas and thinking outside the box. Help users brainstorm creative solutions, explore unconventional approaches, and spark new perspectives. Be enthusiastic and imaginative.",
+        "starter_message": "Let's unleash your creativity! I'm here to help you brainstorm innovative ideas and explore exciting possibilities. Whether you're working on:\n- Product ideas\n- Marketing campaigns\n- Problem-solving\n- Artistic projects\n- Business innovations\n\nWhat would you like to brainstorm today?",
+        "description": "Creative ideation partner for innovative thinking"
+    }
+}
+
+# Enhanced connection status check
+def check_ollama_connection():
+    """Check if Ollama is running and accessible"""
+    try:
+        response = requests.get("http://localhost:11434/api/tags", timeout=3)
+        return response.status_code == 200, "Connected"
+    except requests.exceptions.ConnectionError:
+        return False, "Connection refused - Is Ollama running?"
+    except requests.exceptions.Timeout:
+        return False, "Connection timeout"
+    except Exception as e:
+        return False, f"Error: {str(e)}"
+
+# Message history and navigation functions
+def generate_conversation_summary(messages):
+    """Generate a brief summary of the conversation"""
+    if not messages:
+        return "Empty conversation"
+    
+    user_messages = [msg for msg in messages if msg.get("role") == "user"]
+    if not user_messages:
+        return "No user messages"
+    
+    first_message = user_messages[0].get("content", "")
+    if len(first_message) > 50:
+        return first_message[:47] + "..."
+    return first_message or "Untitled conversation"
+
+def save_conversation_history():
+    """Save conversation to history for navigation"""
+    if 'conversation_history' not in st.session_state:
+        st.session_state.conversation_history = []
+    
+    if st.session_state.messages:
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        summary = generate_conversation_summary(st.session_state.messages)
+        
+        # Check if this conversation already exists in history (avoid duplicates)
+        conversation_id = hash(str(st.session_state.messages))
+        existing = next((conv for conv in st.session_state.conversation_history if conv.get('id') == conversation_id), None)
+        
+        if not existing:
+            conversation_data = {
+                'id': conversation_id,
+                'timestamp': timestamp,
+                'summary': summary,
+                'messages': st.session_state.messages.copy(),
+                'system_prompt': st.session_state.get('system_prompt', ''),
+                'model': st.session_state.get('selected_models', [''])[0]
+            }
+            st.session_state.conversation_history.insert(0, conversation_data)
+            
+            # Keep only last 20 conversations
+            st.session_state.conversation_history = st.session_state.conversation_history[:20]
+
+def load_conversation_from_history(conversation):
+    """Load a conversation from history"""
+    st.session_state.messages = conversation['messages'].copy()
+    st.session_state.system_prompt = conversation.get('system_prompt', '')
+    if conversation.get('model'):
+        st.session_state.selected_models = [conversation['model']]
+
+# Persistence functions
+def save_conversation_state():
+    """Save the current conversation state to a file"""
+    try:
+        os.makedirs('.streamlit_cache', exist_ok=True)
+        state_data = {
+            'messages': st.session_state.messages,
+            'system_prompt': st.session_state.system_prompt,
+            'temperature': st.session_state.temperature,
+            'top_p': st.session_state.top_p,
+            'max_tokens': st.session_state.max_tokens,
+            'theme': st.session_state.theme,
+            'comparison_mode': st.session_state.comparison_mode,
+            'selected_models': st.session_state.selected_models,
+            'conversation_history': st.session_state.get('conversation_history', []),
+            'timestamp': datetime.now().isoformat()
+        }
+        with open('.streamlit_cache/conversation_state.pkl', 'wb') as f:
+            pickle.dump(state_data, f)
+    except Exception as e:
+        st.error(f"Failed to save conversation state: {e}")
+
+def load_conversation_state():
+    """Load the conversation state from file"""
+    try:
+        if os.path.exists('.streamlit_cache/conversation_state.pkl'):
+            with open('.streamlit_cache/conversation_state.pkl', 'rb') as f:
+                state_data = pickle.load(f)
+                
+            # Restore state
+            st.session_state.messages = state_data.get('messages', [])
+            st.session_state.system_prompt = state_data.get('system_prompt', "You are a helpful assistant.")
+            st.session_state.temperature = state_data.get('temperature', 0.7)
+            st.session_state.top_p = state_data.get('top_p', 0.9)
+            st.session_state.max_tokens = state_data.get('max_tokens', 2048)
+            st.session_state.theme = state_data.get('theme', 'dark')
+            st.session_state.comparison_mode = state_data.get('comparison_mode', False)
+            st.session_state.selected_models = state_data.get('selected_models', [])
+            st.session_state.conversation_history = state_data.get('conversation_history', [])
+            
+            return True
+    except Exception as e:
+        st.error(f"Failed to load conversation state: {e}")
+    return False
+
+def clear_conversation_state():
+    """Clear the saved conversation state"""
+    try:
+        if os.path.exists('.streamlit_cache/conversation_state.pkl'):
+            os.remove('.streamlit_cache/conversation_state.pkl')
+    except Exception as e:
+        st.error(f"Failed to clear conversation state: {e}")
+
 # Initialize session state
-if 'messages' not in st.session_state:
-    st.session_state.messages = []
-if 'comparison_mode' not in st.session_state:
-    st.session_state.comparison_mode = False
-if 'selected_models' not in st.session_state:
-    st.session_state.selected_models = []
-if 'system_prompt' not in st.session_state:
-    st.session_state.system_prompt = "You are a helpful assistant."
-if 'temperature' not in st.session_state:
-    st.session_state.temperature = 0.7
-if 'top_p' not in st.session_state:
-    st.session_state.top_p = 0.9
-if 'max_tokens' not in st.session_state:
-    st.session_state.max_tokens = 2048
-if 'theme' not in st.session_state:
-    st.session_state.theme = 'dark'
-if 'show_thinking' not in st.session_state:
+if 'initialized' not in st.session_state:
+    # Try to load saved state first
+    if not load_conversation_state():
+        # Initialize with defaults if no saved state
+        st.session_state.messages = []
+        st.session_state.comparison_mode = False
+        st.session_state.selected_models = []
+        st.session_state.system_prompt = "You are a helpful assistant."
+        st.session_state.temperature = 0.7
+        st.session_state.top_p = 0.9
+        st.session_state.max_tokens = 2048
+        st.session_state.theme = 'dark'
+        st.session_state.conversation_history = []  # Initialize conversation history
     st.session_state.show_thinking = {}
+    st.session_state.initialized = True
 
 # Custom CSS for theming and styling
 def apply_custom_css():
@@ -555,14 +713,24 @@ def apply_custom_css():
 
 # Ollama API functions
 def get_available_models():
-    """Fetch available models from Ollama"""
+    """Fetch available models from Ollama with enhanced error handling"""
     try:
-        response = requests.get('http://localhost:11434/api/tags')
+        response = requests.get('http://localhost:11434/api/tags', timeout=5)
         if response.status_code == 200:
             models = response.json().get('models', [])
             return sorted([model['name'] for model in models])
+        else:
+            st.error(f"Failed to fetch models. HTTP {response.status_code}")
+            return []
+    except requests.exceptions.ConnectionError:
+        st.error("❌ Cannot connect to Ollama. Please make sure Ollama is running on localhost:11434")
+        st.info("💡 Try running: `ollama serve` in your terminal")
         return []
-    except:
+    except requests.exceptions.Timeout:
+        st.error("⏱️ Connection to Ollama timed out. Please check if Ollama is responding.")
+        return []
+    except Exception as e:
+        st.error(f"❌ Unexpected error fetching models: {str(e)}")
         return []
 
 def pull_model(model_name, progress_bar):
@@ -713,6 +881,32 @@ apply_custom_css()
 with st.sidebar:
     st.title("🤖 Ollama Chat Studio")
     
+    # Connection status indicator
+    is_connected, status_msg = check_ollama_connection()
+    if is_connected:
+        st.success(f"🟢 Ollama: {status_msg}")
+    else:
+        st.error(f"🔴 Ollama: {status_msg}")
+    
+    # Message History Navigation
+    if 'conversation_history' in st.session_state and st.session_state.conversation_history:
+        with st.expander("📚 Conversation History", expanded=False):
+            st.write("Quick navigation to previous conversations:")
+            for i, conv in enumerate(st.session_state.conversation_history[:10]):  # Show last 10
+                col1, col2 = st.columns([4, 1])
+                with col1:
+                    # Truncate summary for display
+                    display_summary = conv['summary'][:40] + "..." if len(conv['summary']) > 40 else conv['summary']
+                    st.caption(f"🕒 {conv['timestamp'][:16]}")
+                    if st.button(f"💬 {display_summary}", key=f"load_conv_{i}", help=conv['summary']):
+                        load_conversation_from_history(conv)
+                        st.rerun()
+                with col2:
+                    if st.button("🗑️", key=f"del_conv_{i}", help="Delete conversation"):
+                        st.session_state.conversation_history.pop(i)
+                        st.rerun()
+                st.divider()
+    
     # Theme toggle
     col1, col2 = st.columns(2)
     with col1:
@@ -767,6 +961,9 @@ with st.sidebar:
     col1, col2 = st.columns(2)
     with col1:
         if st.button("🗑️ Clear Chat"):
+            # Save current conversation to history before clearing
+            if st.session_state.messages:
+                save_conversation_history()
             st.session_state.messages = []
             st.session_state.show_thinking = {}
             st.rerun()
@@ -878,11 +1075,15 @@ else:
                         st.markdown(f"```\n{thinking}\n```")
 
 # Chat input
-user_input = st.chat_input("Type your message...")
+# User input
+st.info("💡 **Pro tip:** Press Enter to send, Shift+Enter for new line")
+user_input = st.chat_input("Type your message... (Press Enter to send)")
 
 if user_input and st.session_state.selected_models:
     # Add user message
     st.session_state.messages.append({"role": "user", "content": user_input})
+    # Auto-save conversation state after each message
+    save_conversation_state()
     
     # Prepare messages for API
     api_messages = [{"role": "system", "content": st.session_state.system_prompt}]
@@ -988,6 +1189,9 @@ if user_input and st.session_state.selected_models:
                 with st.expander("🤔 Thinking Process", expanded=False):
                     st.markdown(f"```\n{thinking}\n```")
     
+    # Auto-save after generating responses
+    save_conversation_state()
+    save_conversation_history()  # Save to history for navigation
     st.rerun()
 
 # Footer
