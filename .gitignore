@@ -68,3 +68,4 @@ agents/
 
 # Claude Code files - development tools and temporary files
 .claude/
+/venv-wsl/
